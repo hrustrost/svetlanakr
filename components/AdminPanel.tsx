@@ -1,4 +1,5 @@
 
+/// <reference types="vite/client" />
 import React, { useState } from 'react';
 import { SiteContent, MediaItem } from '../types';
 
@@ -12,6 +13,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ content, onUpdate }) => {
   const [newUrl, setNewUrl] = useState('');
   const [newTitle, setNewTitle] = useState('');
   const [showExport, setShowExport] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -52,6 +54,51 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ content, onUpdate }) => {
     onUpdate({ ...content, media: [newItem, ...content.media] });
     setNewUrl('');
     setNewTitle('');
+  };
+
+  const uploadFileToCloudinary = async (file?: File) => {
+    if (!file) return;
+    // Quick setup: hardcoded Cloudinary values (replace with env vars for production)
+    const cloudName = 'dtgdv49fh';
+    const uploadPreset = 'unsigned_preset';
+    if (!cloudName || !uploadPreset) {
+      alert('Cloudinary не настроен. Установите VITE_CLOUDINARY_CLOUD_NAME и VITE_CLOUDINARY_UPLOAD_PRESET.');
+      return;
+    }
+
+    try {
+      setUploading(true);
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('upload_preset', uploadPreset);
+
+      // choose resource type for better behavior (images -> image/upload, video -> video/upload, others -> raw)
+      const resourceType = file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'raw';
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`, {
+        method: 'POST',
+        body: fd,
+      });
+      if (!res.ok) throw new Error('Upload failed');
+      const data = await res.json();
+      const returnedUrl = data.secure_url || data.url;
+      const inferredType: MediaItem['type'] = resourceType === 'image' ? 'image' : resourceType === 'video' ? 'video' : 'document';
+      const newItem: MediaItem = {
+        id: Math.random().toString(36).substr(2, 9),
+        type: inferredType,
+        url: returnedUrl,
+        title: newTitle || file.name,
+        description: 'Загруженный файл',
+        category: 'leadership'
+      };
+      onUpdate({ ...content, media: [newItem, ...content.media] });
+      setNewTitle('');
+      setNewUrl('');
+    } catch (err) {
+      console.error(err);
+      alert('Ошибка при загрузке файла');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, target: 'avatar' | 'hero') => {
@@ -165,9 +212,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ content, onUpdate }) => {
                  <h3 className="text-4xl font-black tracking-tight">Библиотека ресурсов</h3>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    <input placeholder="Заголовок" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="px-8 py-5 bg-white/10 border-2 border-white/20 rounded-3xl outline-none placeholder:text-white/40 font-bold" />
-                   <div className="flex gap-4">
+                   <div className="flex gap-4 items-center">
                      <input placeholder="Ссылка (YouTube/Drive)" value={newUrl} onChange={(e) => setNewUrl(e.target.value)} className="flex-1 px-8 py-5 bg-white/10 border-2 border-white/20 rounded-3xl outline-none placeholder:text-white/40 font-bold" />
-                     <button onClick={addExternalLink} className="px-10 bg-amber-400 text-slate-900 rounded-3xl font-black uppercase text-[10px]">OK</button>
+                     <button onClick={addExternalLink} className="px-6 bg-amber-400 text-slate-900 rounded-3xl font-black uppercase text-[10px]">OK</button>
+                     <label className="ml-2 px-4 py-3 bg-white/10 rounded-3xl cursor-pointer text-[10px] font-black">
+                       {uploading ? 'Загрузка...' : 'Загрузить файл'}
+                       <input type="file" className="hidden" onChange={(e) => uploadFileToCloudinary(e.target.files?.[0])} />
+                     </label>
                    </div>
                  </div>
                </div>
@@ -175,14 +226,28 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ content, onUpdate }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {content.media.map(m => (
                 <div key={m.id} className="p-8 bg-white rounded-[3rem] border border-slate-100 flex items-center gap-8 group shadow-sm hover:shadow-xl transition-all">
-                  <div className={`w-20 h-20 rounded-[1.5rem] flex items-center justify-center text-3xl ${m.type === 'video' ? 'bg-rose-50 text-rose-500' : 'bg-indigo-50 text-indigo-500'}`}>
-                    {m.type === 'video' ? '🎥' : '📄'}
+                  <div className="w-20 h-20 rounded-[1.5rem] overflow-hidden flex items-center justify-center">
+                    {m.type === 'image' ? (
+                      <img src={m.url} className="w-full h-full object-cover" alt={m.title} />
+                    ) : m.type === 'video' ? (
+                      <div className="w-full h-full bg-rose-50 text-rose-500 flex items-center justify-center text-2xl">🎥</div>
+                    ) : (
+                      <div className="w-full h-full bg-indigo-50 text-indigo-500 flex items-center justify-center text-sm font-black">{(m.title || m.url).split('.').pop()?.toUpperCase() || 'DOC'}</div>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-black text-lg truncate">{m.title}</p>
-                    <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">{m.type === 'video' ? 'YouTube' : 'Файл'}</p>
+                    <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">{m.type === 'video' ? 'Видео' : m.type === 'image' ? 'Изображение' : 'Файл'}</p>
+                    <a href={m.url} target="_blank" rel="noreferrer" className="text-xs text-slate-500 mt-1 inline-block truncate">Открыть / Скачать</a>
                   </div>
-                  <button onClick={() => onUpdate({...content, media: content.media.filter(x => x.id !== m.id)})} className="p-4 text-slate-200 hover:text-rose-500">🗑️</button>
+                  <button
+                    onClick={() => {
+                      if (confirm('Удалить этот файл из библиотеки?')) {
+                        onUpdate({...content, media: content.media.filter(x => x.id !== m.id)});
+                      }
+                    }}
+                    className="p-4 text-slate-200 hover:text-rose-500"
+                  >🗑️</button>
                 </div>
               ))}
             </div>
