@@ -1,12 +1,15 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { SiteContent, ViewMode } from './types';
-import { INITIAL_CONTENT } from './constants';
+import { INITIAL_CONTENT, ADMIN_PASSWORD } from './constants';
 import Navbar from './components/Navbar';
 import AdminPanel from './components/AdminPanel';
 
 const App: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [loginPwd, setLoginPwd] = useState('');
+  const [loginError, setLoginError] = useState('');
   const [content, setContent] = useState<SiteContent>(INITIAL_CONTENT);
   
   const heroRef = useRef<HTMLDivElement>(null);
@@ -56,7 +59,13 @@ const App: React.FC = () => {
     <div className="min-h-screen selection:bg-amber-400 selection:text-slate-950 bg-white text-slate-950">
       <Navbar 
         isAdmin={isAdmin} 
-        onToggleAdmin={() => setIsAdmin(!isAdmin)} 
+        onRequestAdmin={() => {
+          if (isAdmin) {
+            setIsAdmin(false);
+          } else {
+            setShowLogin(true);
+          }
+        }}
         onScrollTo={scrollTo} 
       />
 
@@ -74,7 +83,7 @@ const App: React.FC = () => {
                 <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 via-slate-950/40 to-slate-950"></div>
               </div>
               
-              <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 flex flex-col items-center text-center text-white space-y-12">
+              <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 pt-24 lg:pt-36 flex flex-col items-center text-center text-white space-y-12">
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-10 duration-1000">
                   <div className="inline-flex items-center gap-4">
                     <span className="px-8 py-3 bg-amber-400 text-slate-950 text-xs font-black tracking-[0.3em] uppercase rounded-full shadow-2xl">
@@ -218,6 +227,41 @@ const App: React.FC = () => {
             </footer>
           </>
         )}
+
+        {/* Login Modal (global) */}
+        {showLogin && (
+          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50">
+            <div className="w-full max-w-md bg-white rounded-3xl p-8 shadow-2xl">
+              <h3 className="text-2xl font-black mb-4">Вход в личный кабинет</h3>
+              <p className="text-sm text-slate-500 mb-4">Введите пароль для доступа к кабинету.</p>
+              <input
+                type="password"
+                value={loginPwd}
+                onChange={(e) => setLoginPwd(e.target.value)}
+                className="w-full px-6 py-3 border rounded-2xl mb-4 outline-none"
+                placeholder="Пароль"
+              />
+              {loginError && <p className="text-rose-600 mb-2 text-sm">{loginError}</p>}
+              <div className="flex gap-4 justify-end">
+                <button onClick={() => { setShowLogin(false); setLoginPwd(''); setLoginError(''); }} className="px-6 py-3 rounded-2xl border">Отмена</button>
+                <button
+                  onClick={() => {
+                    if (loginPwd === ADMIN_PASSWORD) {
+                      setIsAdmin(true);
+                      setShowLogin(false);
+                      setLoginPwd('');
+                      setLoginError('');
+                    } else {
+                      setLoginError('Неправильный пароль');
+                    }
+                  }}
+                  className="px-6 py-3 rounded-2xl bg-amber-400 text-slate-900 font-black"
+                >Войти</button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </main>
     </div>
   );

@@ -51,3 +51,6 @@ export const INITIAL_CONTENT: SiteContent = {
   ],
   media: []
 };
+
+// Simple client-side admin password — change before production
+export const ADMIN_PASSWORD = 'admin123';

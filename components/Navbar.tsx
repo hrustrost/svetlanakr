@@ -3,11 +3,12 @@ import React from 'react';
 
 interface NavbarProps {
   isAdmin: boolean;
-  onToggleAdmin: () => void;
+  // call to request entering/exiting admin mode (App will decide to show login or logout)
+  onRequestAdmin: () => void;
   onScrollTo: (section: string) => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ isAdmin, onToggleAdmin, onScrollTo }) => {
+const Navbar: React.FC<NavbarProps> = ({ isAdmin, onRequestAdmin, onScrollTo }) => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-2xl border-b border-slate-100">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
@@ -30,7 +31,7 @@ const Navbar: React.FC<NavbarProps> = ({ isAdmin, onToggleAdmin, onScrollTo }) =
 
           <div className="flex items-center space-x-6">
             <button
-              onClick={onToggleAdmin}
+              onClick={onRequestAdmin}
               className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl ${
                 isAdmin 
                 ? 'bg-rose-600 text-white hover:bg-rose-700' 
