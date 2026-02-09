@@ -58,9 +58,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ content, onUpdate }) => {
 
   const uploadFileToCloudinary = async (file?: File) => {
     if (!file) return;
-    // Quick setup: hardcoded Cloudinary values (replace with env vars for production)
-    const cloudName = 'dtgdv49fh';
-    const uploadPreset = 'unsigned_preset';
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME as string | undefined;
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET as string | undefined;
     if (!cloudName || !uploadPreset) {
       alert('Cloudinary не настроен. Установите VITE_CLOUDINARY_CLOUD_NAME и VITE_CLOUDINARY_UPLOAD_PRESET.');
       return;

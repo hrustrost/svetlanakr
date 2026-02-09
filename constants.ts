@@ -52,5 +52,5 @@ export const INITIAL_CONTENT: SiteContent = {
   media: []
 };
 
-// Simple client-side admin password — change before production
-export const ADMIN_PASSWORD = 'rostik04';
+// Simple client-side admin password — set via env for builds
+export const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || '';
